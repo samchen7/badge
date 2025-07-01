@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>群聊勋章分析</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .medal-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .medals-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+        }
+        .medal-button {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .medal-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .medal-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+        }
+        .medal-text {
+            font-size: 14px;
+        }
+        .right-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .group-select {
+            width: 300px;
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .result-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 4px;
+            display: none;
+        }
+        .db-selector {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .page-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 24px;
+        }
+        .wordcloud-container {
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            position: relative;
+        }
+        .wordcloud-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .placeholder-text {
+            position: absolute;
+            color: #999;
+            font-size: 16px;
+        }
+        .content-container {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .left-column {
+            flex: 0 0 300px;  /* 固定宽度 */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .right-column {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 600px;  /* 确保有足够空间 */
+        }
+        
+        .result-text {
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            color: #666;
+        }
+        
+        .wordcloud-progress {
+            width: 80%;
+            margin: 20px auto;
+        }
+        
+        .wordcloud-progress .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .wordcloud-progress .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .wordcloud-progress .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">群聊勋章分析</h1>
+        
+        <div class="db-selector">
+            <h2>选择数据库文件</h2>
+            <input type="file" id="dbFile" accept=".db" onchange="handleDbSelect()">
+        </div>
+
+        <div class="content-container">
+            <!-- 左列：勋章按钮和群聊选择 -->
+            <div class="left-column">
+                <div id="friendMedal" class="medals-row">
+                    <div class="medal-button" onclick="analyzeFriend()" disabled>
+                        <img src="{{ url_for('static', filename='friend.png') }}" alt="挚友勋章" class="medal-icon">
+                        <span class="medal-text">挚友勋章</span>
+                    </div>
+                </div>
+
+                <select class="group-select" disabled>
+                    <option value="">请先选择数据库文件</option>
+                </select>
+                
+                <div id="chattyMedal" class="medals-row">
+                    <div class="medal-button" onclick="analyzeChatty()" disabled>
+                        <img src="{{ url_for('static', filename='chatty.png') }}" alt="话唠勋章" class="medal-icon">
+                        <span class="medal-text">话唠勋章</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右列：结果展示 -->
+            <div class="right-column">
+                <div id="resultArea">
+                    <p class="placeholder-text">请点击左侧勋章进行分析</p>
+                    <div class="result-text"></div>
+                    <div class="wordcloud-container">
+                        <img id="wordcloudImg" style="display: none;">
+                        <p class="placeholder-text" id="wordcloudPlaceholder">词云将在这里显示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDbPath = '';
+
+        function handleDbSelect() {
+            const fileInput = document.getElementById('dbFile');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('db_file', file);
+
+            fetch('/get_groups', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const groupSelect = document.querySelector('.group-select');
+                    groupSelect.innerHTML = '<option value="">请选择群聊</option>';
+                    data.groups.forEach(group => {
+                        groupSelect.innerHTML += `<option value="${group.room_name}">${group.nickname}</option>`;
+                    });
+                    groupSelect.disabled = false;
+                    document.querySelector('#friendMedal .medal-button').disabled = false;
+                    document.querySelector('#chattyMedal .medal-button').disabled = false;
+                } else {
+                    alert('加载群聊列表失败：' + data.error);
+                }
+            });
+        }
+
+        function showProgress(progress) {
+            const progressContainer = document.querySelector('.progress-container');
+            const progressFill = document.querySelector('.progress-fill');
+            const progressText = document.querySelector('.progress-text');
+            
+            progressContainer.style.display = 'block';
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `正在分析数据...${progress}%`;
+        }
+
+        function hideProgress() {
+            document.querySelector('.progress-container').style.display = 'none';
+        }
+
+        function showWordcloudProgress(show) {
+            const progressDiv = document.querySelector('.wordcloud-progress');
+            const placeholder = document.getElementById('wordcloudPlaceholder');
+            if (show) {
+                progressDiv.style.display = 'block';
+                placeholder.style.display = 'none';
+                
+                // 模拟进度
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 5;
+                    if (progress <= 90) {
+                        const fill = progressDiv.querySelector('.progress-fill');
+                        fill.style.width = `${progress}%`;
+                        progressDiv.querySelector('.progress-text').textContent = 
+                            `正在生成词云...${progress}%`;
+                    }
+                }, 200);
+                
+                return interval;
+            } else {
+                progressDiv.style.display = 'none';
+            }
+        }
+
+        function analyzeFriend() {
+            const fileInput = document.getElementById('dbFile');
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('db_file', file);
+
+            // 重置显示状态
+            const initialPlaceholder = document.querySelector('.placeholder-text:not(#wordcloudPlaceholder)');
+            initialPlaceholder.style.display = 'none';  // 隐藏初始提示文本
+            document.querySelector('.result-text').textContent = '';
+            document.getElementById('wordcloudImg').style.display = 'none';
+            document.getElementById('wordcloudPlaceholder').textContent = '正在生成词云...';
+
+            fetch('/analyze_friend', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response:', data);
+                
+                if (data.success) {
+                    // 显示文本结果
+                    document.querySelector('.result-text').textContent = data.result.text;
+                    
+                    // 显示词云
+                    const wordcloudImg = document.getElementById('wordcloudImg');
+                    const placeholder = document.getElementById('wordcloudPlaceholder');
+                    
+                    if (data.result.wordcloud) {
+                        wordcloudImg.onload = function() {
+                            this.style.display = 'block';
+                            placeholder.style.display = 'none';
+                        };
+                        wordcloudImg.src = 'data:image/png;base64,' + data.result.wordcloud;
+                    } else {
+                        wordcloudImg.style.display = 'none';
+                        placeholder.textContent = '无法生成词云';
+                        placeholder.style.display = 'block';
+                    }
+                } else {
+                    alert('分析失败：' + data.error);
+                    initialPlaceholder.style.display = 'block';  // 失败时显示初始提示
+                }
+            })
+            .catch(error => {
+                console.error('Request failed:', error);
+                alert('分析失败：' + error);
+                initialPlaceholder.style.display = 'block';  // 错误时显示初始提示
+            });
+        }
+
+        function analyzeChatty() {
+            const groupId = document.querySelector('.group-select').value;
+            if (!groupId) {
+                alert('请先选择群聊');
+                return;
+            }
+
+            const fileInput = document.getElementById('dbFile');
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('db_file', file);
+            formData.append('group_id', groupId);
+
+            // 重置显示状态
+            const initialPlaceholder = document.querySelector('.placeholder-text:not(#wordcloudPlaceholder)');
+            initialPlaceholder.style.display = 'none';  // 隐藏初始提示文本
+            document.querySelector('.result-text').textContent = '';
+            document.getElementById('wordcloudImg').style.display = 'none';
+            document.getElementById('wordcloudPlaceholder').textContent = '正在生成词云...';
+            
+            fetch('/analyze_chatty', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response:', data);
+                
+                if (data.success) {
+                    // 显示文本结果
+                    document.querySelector('.result-text').textContent = data.result.text;
+                    
+                    // 显示词云
+                    const wordcloudImg = document.getElementById('wordcloudImg');
+                    const placeholder = document.getElementById('wordcloudPlaceholder');
+                    
+                    if (data.result.wordcloud) {
+                        wordcloudImg.onload = function() {
+                            this.style.display = 'block';
+                            placeholder.style.display = 'none';
+                        };
+                        wordcloudImg.src = 'data:image/png;base64,' + data.result.wordcloud;
+                    } else {
+                        wordcloudImg.style.display = 'none';
+                        placeholder.textContent = '无法生成词云';
+                        placeholder.style.display = 'block';
+                    }
+                } else {
+                    alert('分析失败：' + data.error);
+                    initialPlaceholder.style.display = 'block';  // 失败时显示初始提示
+                }
+            })
+            .catch(error => {
+                console.error('Request failed:', error);
+                alert('分析失败：' + error);
+                initialPlaceholder.style.display = 'block';  // 错误时显示初始提示
+            });
+        }
+    </script>
+</body>
+</html> 
