@@ -1,0 +1,4 @@
+Flask
+jieba
+wordcloud
+matplotlib 
